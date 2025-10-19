@@ -1,4 +1,3 @@
-from typing import Optional
 from fastapi import APIRouter
 from services.profile_service import ProfileService
 from schemas.profile_schema import (
@@ -22,11 +21,11 @@ async def create_profile(profile: ProfileCreateRequest):
 
 
 @router.get("/", summary="Get user profiles", response_model=list[ProfileResponse])
-async def get_profiles(username: Optional[str] = None):
+async def get_profiles(username: str | None = None, profile_id: str | None = None):
     """
     Fetch profiles from the 'profiles' table.
     """
-    response = await service.read_profiles(username)
+    response = await service.read_profiles(username, profile_id)
     return response
 
 

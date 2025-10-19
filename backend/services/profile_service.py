@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import HTTPException
 from dependencies.supabase_client import supabase
 from schemas.profile_schema import ProfileCreateRequest, ProfileUpdateRequest
@@ -31,10 +29,12 @@ class ProfileService:
             raise HTTPException(status_code=400, detail="Failed to create profile")
         return None
 
-    async def read_profiles(self, username: Optional[str] = None):
+    async def read_profiles(self, username: str | None = None, profile_id: str | None = None):
         """Read user profiles from the 'profiles' table."""
         query = supabase.table("profiles").select("*")
-        if username:
+        if profile_id:
+            query = query.eq("id", profile_id)
+        elif username:
             query = query.eq("username", username)
         response = query.execute()
         if not response.data:
