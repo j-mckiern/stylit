@@ -17,7 +17,7 @@ async def create_profile(
     username: str = Form(...),
     display_name: str = Form(...),
     visibility: str = Form(...),
-    pfp: UploadFile | None = File(None)
+    pfp: UploadFile | None = File(None),
 ):
     """
     Create profile in the 'profiles' table.
@@ -47,7 +47,7 @@ async def update_profile(
     username: str | None = Form(None),
     display_name: str | None = Form(None),
     visibility: str | None = Form(None),
-    pfp: UploadFile | None = File(None)
+    pfp: UploadFile | None = File(None),
 ):
     """
     Update profile in the 'profiles' table.
