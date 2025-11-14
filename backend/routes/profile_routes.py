@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, File, Form, UploadFile
 from services.profile_service import ProfileService
 from schemas.profile_schema import (
     ProfileCreateRequest,
@@ -12,11 +12,23 @@ service = ProfileService()
 
 
 @router.post("/", summary="Create user profile", status_code=201)
-async def create_profile(profile: ProfileCreateRequest):
+async def create_profile(
+    id: str = Form(...),
+    username: str = Form(...),
+    display_name: str = Form(...),
+    visibility: str = Form(...),
+    pfp: UploadFile | None = File(None)
+):
     """
     Create profile in the 'profiles' table.
     """
-    response = await service.create_profile(profile)
+    profile = ProfileCreateRequest(
+        id=id,
+        username=username,
+        display_name=display_name,
+        visibility=visibility,
+    )
+    response = await service.create_profile(profile, pfp)
     return response
 
 
@@ -30,11 +42,22 @@ async def get_profiles(username: str | None = None, profile_id: str | None = Non
 
 
 @router.put("/", summary="Update user profile", status_code=204)
-async def update_profile(profile_id: str, profile: ProfileUpdateRequest):
+async def update_profile(
+    profile_id: str,
+    username: str | None = Form(None),
+    display_name: str | None = Form(None),
+    visibility: str | None = Form(None),
+    pfp: UploadFile | None = File(None)
+):
     """
     Update profile in the 'profiles' table.
     """
-    response = await service.update_profile(profile_id, profile)
+    profile = ProfileUpdateRequest(
+        username=username,
+        display_name=display_name,
+        visibility=visibility,
+    )
+    response = await service.update_profile(profile_id, profile, pfp)
     return response
 
 
