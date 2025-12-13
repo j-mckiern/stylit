@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import profile_routes
+from routes import profile_routes, item_routes
 
 app = FastAPI()
 
@@ -10,3 +10,4 @@ async def root():
 
 
 app.include_router(profile_routes.router)
+app.include_router(item_routes.router)

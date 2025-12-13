@@ -37,7 +37,7 @@ class SupabaseStorageService:
         signed_url = supabase.storage.from_("private_uploads").create_signed_url(
             file_path, expires_in
         )
-        return signed_url
+        return signed_url["signedUrl"]
 
     async def get_public_url(self, filename: str, folder: str | None = None):
         file_path = self._build_path(filename, folder)
