@@ -1,12 +1,13 @@
 from fastapi import HTTPException, UploadFile
 from dependencies.supabase_client import supabase
+from services.supabase_storage_service import SupabaseStorageService
 from schemas.profile_schema import ProfileCreateRequest, ProfileUpdateRequest
 from settings import settings
 
 
 class ProfileService:
     def __init__(self):
-        pass
+        self.supabase_storage = SupabaseStorageService()
 
     async def create_profile(
         self, profile: ProfileCreateRequest, pfp: UploadFile | None
@@ -35,8 +36,7 @@ class ProfileService:
         data = profile.model_dump()
 
         if pfp:
-            extension = pfp.filename.split(".")[-1]
-            pfp_filename = f"{profile.id}-pfp.{extension}"
+            pfp_filename = f"{profile.id}-pfp"
             pfp_url = await self.save_pfp(pfp, pfp_filename)
             data["pfp_url"] = pfp_url
         else:
@@ -86,11 +86,9 @@ class ProfileService:
                 )
 
         if pfp:
-            extension = pfp.filename.split(".")[-1]
-            pfp_filename = f"{profile_id}-pfp.{extension}"
+            pfp_filename = f"{profile_id}-pfp"
             pfp_url = await self.save_pfp(pfp, pfp_filename)
             data["pfp_url"] = pfp_url
-
         if not data:
             return None
         # Update profile
@@ -117,49 +115,21 @@ class ProfileService:
 
         # Delete the pfp from storage if it's not the default pfp
         if pfp_url and pfp_url != settings.default_pfp_url:
-            try:
-                # Try to delete common image extensions
-                common_extensions = ["jpg", "jpeg", "png", "gif", "webp"]
-                files_to_try = [
-                    f"pfps/{profile_id}-pfp.{ext}" for ext in common_extensions
-                ]
-
-                # Attempt to remove files (won't error if they don't exist)
-                for file_path in files_to_try:
-                    try:
-                        supabase.storage.from_("public_uploads").remove([file_path])
-                    except:
-                        pass  # File doesn't exist, continue
-            except Exception as e:
-                # Log the error but don't fail the deletion
-                print(
-                    f"Warning: Failed to delete pfp for profile {profile_id}: {str(e)}"
-                )
+            await self.supabase_storage.delete_file(
+                f"{profile_id}-pfp", "public_uploads", "pfps"
+            )
 
         return None
 
     async def save_pfp(self, pfp: UploadFile, filename: str):
-        """Saves pfp to supabase storage bucket and returns its url"""
+        await self.supabase_storage.save_file(
+            file=pfp,
+            bucket="public_uploads",
+            filename=filename,
+            folder="pfps",
+        )
 
-        file_path = f"pfps/{filename}"
-        file_content = await pfp.read()
-
-        try:
-            supabase.storage.from_("public_uploads").upload(
-                file_path,
-                file_content,
-                file_options={"content-type": pfp.content_type, "upsert": "true"},
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=400, detail=f"Failed to upload pfp: {str(e)}"
-            )
-
-        try:
-            public_url = supabase.storage.from_("public_uploads").get_public_url(
-                file_path
-            )
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Failed to get pfp: {str(e)}")
-
-        return public_url
+        return await self.supabase_storage.get_public_url(
+            filename=filename,
+            folder="pfps",
+        )
