@@ -1,4 +1,4 @@
-from supabase import create_client
+from supabase import create_client, Client
 from settings import settings
 
-supabase = create_client(settings.supabase_url, settings.supabase_service_role_key)
+supabase: Client = create_client(settings.supabase_url, settings.supabase_service_role_key)

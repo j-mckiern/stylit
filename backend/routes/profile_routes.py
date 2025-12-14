@@ -1,12 +1,14 @@
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
+from dependencies.user_auth import get_current_user
 from services.profile_service import ProfileService
 from schemas.profile_schema import (
     ProfileCreateRequest,
     ProfileUpdateRequest,
     ProfileResponse,
 )
+from gotrue.types import User
 
-router = APIRouter(prefix="/profiles", tags=["Profiles"])
+router = APIRouter(prefix="/profiles", tags=["Profiles"], dependencies=[Depends(get_current_user)])
 
 service = ProfileService()
 
@@ -68,3 +70,7 @@ async def delete_profile(profile_id: str):
     """
     response = await service.delete_profile(profile_id)
     return response
+
+@router.get("/verify")
+async def verify_user(current_user: User = Depends(get_current_user)):
+    return {"message": f"Hello, {current_user.email}! You have access to protected data."}
