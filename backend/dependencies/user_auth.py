@@ -5,7 +5,10 @@ from .supabase_client import supabase
 # Define a security scheme
 bearer_scheme = HTTPBearer()
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+):
     token = credentials.credentials
     try:
         # Verify the JWT using the Supabase client

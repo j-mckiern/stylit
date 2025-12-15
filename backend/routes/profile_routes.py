@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from dependencies.user_auth import get_current_user
 from services.profile_service import ProfileService
+from schemas.pagination import PaginatedResponse
 from schemas.profile_schema import (
     ProfileCreateRequest,
     ProfileUpdateRequest,
@@ -8,7 +9,9 @@ from schemas.profile_schema import (
 )
 from gotrue.types import User
 
-router = APIRouter(prefix="/profiles", tags=["Profiles"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/profiles", tags=["Profiles"], dependencies=[Depends(get_current_user)]
+)
 
 service = ProfileService()
 
@@ -32,35 +35,47 @@ async def create_profile(
     )
     return await service.create_profile(profile, pfp)
 
+
 @router.get("/verify")
 async def verify_user(current_user: User = Depends(get_current_user)):
     return {"message": f"Hello, {current_user.id}! You have access to protected data."}
 
-@router.get("/me", summary="Get user profile by id", response_model=list[ProfileResponse])
-async def get_profiles(
-    current_user: User = Depends(get_current_user)
-):
+
+@router.get("/me", summary="Get user profile by id", response_model=ProfileResponse)
+async def get_user_profile(current_user: User = Depends(get_current_user)):
     """
     Fetch profiles by id from the 'profiles' table.
     """
-    return await service.read_profiles(profile_id=current_user.id)
+    return await service.read_profile_by_id(profile_id=current_user.id)
 
-@router.get("/", summary="Get user profiles", response_model=list[ProfileResponse])
-async def get_profiles():
+
+@router.get(
+    "/", summary="Get user profiles", response_model=PaginatedResponse[ProfileResponse]
+)
+async def get_profiles(
+    limit: int = 20,
+    page: int = 1,
+):
     """
     Fetch profiles from the 'profiles' table.
     """
-    return await service.read_profiles()
+    return await service.read_profiles(limit=limit, page=page)
 
 
-@router.get("/{username}", summary="Get user profiles by username", response_model=list[ProfileResponse])
-async def get_profiles(
-    username: str
+@router.get(
+    "/by-username/{username}",
+    summary="Get user profiles by username",
+    response_model=PaginatedResponse[ProfileResponse],
+)
+async def get_profiles_by_username(
+    username: str,
+    limit: int = 20,
+    page: int = 20,
 ):
     """
     Fetch profiles by username from the 'profiles' table.
     """
-    return await service.read_profiles(username=username)
+    return await service.read_profiles(username=username, limit=limit, page=page)
 
 
 @router.put("/", summary="Update user profile", status_code=204)

@@ -1,3 +1,4 @@
+import math
 from fastapi import HTTPException, UploadFile
 from dependencies.supabase_client import supabase
 from services.supabase_storage_service import SupabaseStorageService
@@ -47,15 +48,55 @@ class ProfileService:
         return None
 
     async def read_profiles(
-        self, username: str | None = None, profile_id: str | None = None
+        self,
+        username: str | None = None,
+        page: int = 1,
+        limit: int = 20,
     ):
-        """Read user profiles from the 'profiles' table."""
-        query = supabase.table("profiles").select("*")
-        if profile_id:
-            query = query.eq("id", profile_id)
-        elif username:
-            query = query.eq("username", username)
+        """
+        Read profiles from the 'profiles' table.
+        Supports optional username filtering and pagination.
+        """
+        query = supabase.table("profiles").select("*", count="exact")
+
+        # Optional username filter (prefix match)
+        if username:
+            query = query.ilike("username", f"{username}%")
+
+        # Pagination safety
+        page = max(page, 1)
+        offset = (page - 1) * limit
+
+        query = query.range(offset, offset + limit - 1)
+
         response = query.execute()
+
+        total = response.count or 0
+
+        if total == 0:
+            raise HTTPException(status_code=404, detail="No profiles found")
+
+        total_pages = math.ceil(total / limit)
+
+        return {
+            "data": response.data,
+            "meta": {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "total_pages": total_pages,
+            },
+        }
+
+    async def read_profile_by_id(self, profile_id: str):
+        response = (
+            supabase.table("profiles")
+            .select("*")
+            .eq("id", profile_id)
+            .single()
+            .execute()
+        )
+
         if not response.data:
             raise HTTPException(status_code=404, detail="No profiles found")
         return response.data
